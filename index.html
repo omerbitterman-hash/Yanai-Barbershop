@@ -35,6 +35,7 @@ input, select {padding:10px; margin:10px; width:80%;}
 <script>
 const timeSelect = document.getElementById("time");
 
+// הפונקציה יוצרת שעות זמינות לפי התאריך
 function generateTimes(selectedDate) {
   timeSelect.innerHTML = "";
   let now = new Date();
@@ -43,7 +44,7 @@ function generateTimes(selectedDate) {
     let optionTime = new Date(selectedDate);
     optionTime.setHours(i, 0, 0, 0);
 
-    // לא להציג שעות שעברו היום
+    // אם זה היום, לא מציג שעות שעברו
     if (selectedDate.toDateString() === now.toDateString() && optionTime <= now) {
       continue;
     }
@@ -51,6 +52,15 @@ function generateTimes(selectedDate) {
     let option = document.createElement("option");
     option.value = i + ":00";
     option.text = i + ":00";
+    timeSelect.appendChild(option);
+  }
+
+  // אם אין שעות זמינות היום
+  if(timeSelect.options.length === 0){
+    let option = document.createElement("option");
+    option.value = "";
+    option.text = "אין שעות זמינות";
+    option.disabled = true;
     timeSelect.appendChild(option);
   }
 }
@@ -69,6 +79,7 @@ dateInput.addEventListener("input", function() {
   let selected = new Date(this.value);
   let day = selected.getDay();
 
+  // רק ראשון עד חמישי
   if (day === 5 || day === 6) {
     alert("לא עובדים ביום זה");
     this.value = "";
@@ -79,7 +90,7 @@ dateInput.addEventListener("input", function() {
   generateTimes(selected);
 });
 
-// שמירה
+// שמירת תורים
 function getAppointments() {
   return JSON.parse(localStorage.getItem("appointments") || "[]");
 }
@@ -112,21 +123,36 @@ function bookAppointment() {
 
   saveAppointment({ name, date, time });
 
-  let start = new Date(date + "T" + time);
-  let end = new Date(start.getTime() + 60*60*1000);
+  // יצירת אירוע לגוגל קלנדר בלי בעיות זמן
+  let [hour, minute] = time.split(":");
+  let start = new Date(date);
+  start.setHours(parseInt(hour), parseInt(minute), 0, 0);
+  let end = new Date(start.getTime() + 60*60*1000); // שעה
 
   let startStr = formatGoogleDate(start);
   let endStr = formatGoogleDate(end);
 
   let url = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=תספורת+-+${name}&dates=${startStr}/${endStr}`;
-
   window.open(url, '_blank');
 
   document.getElementById("msg").innerText = "התור נשמר!";
 }
 
+// פורמט נכון לגוגל קלנדר
 function formatGoogleDate(date) {
-  return date.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+  // YYYYMMDDTHHMMSSZ
+  return date.getUTCFullYear() +
+         pad(date.getUTCMonth()+1) +
+         pad(date.getUTCDate()) +
+         "T" +
+         pad(date.getUTCHours()) +
+         pad(date.getUTCMinutes()) +
+         pad(date.getUTCSeconds()) +
+         "Z";
+}
+
+function pad(n) {
+  return n<10 ? "0"+n : n;
 }
 </script>
 </body>
