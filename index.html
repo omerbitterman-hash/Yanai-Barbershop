@@ -33,13 +33,26 @@ input, select {padding:10px; margin:10px; width:80%;}
 </div>
 
 <script>
-// שעות
 const timeSelect = document.getElementById("time");
-for (let i = 14; i <= 19; i++) {
-  let option = document.createElement("option");
-  option.value = i + ":00";
-  option.text = i + ":00";
-  timeSelect.appendChild(option);
+
+function generateTimes(selectedDate) {
+  timeSelect.innerHTML = "";
+  let now = new Date();
+
+  for (let i = 14; i <= 19; i++) {
+    let optionTime = new Date(selectedDate);
+    optionTime.setHours(i, 0, 0, 0);
+
+    // לא להציג שעות שעברו היום
+    if (selectedDate.toDateString() === now.toDateString() && optionTime <= now) {
+      continue;
+    }
+
+    let option = document.createElement("option");
+    option.value = i + ":00";
+    option.text = i + ":00";
+    timeSelect.appendChild(option);
+  }
 }
 
 // תאריכים
@@ -51,17 +64,22 @@ nextWeek.setDate(today.getDate() + 7);
 dateInput.min = today.toISOString().split("T")[0];
 dateInput.max = nextWeek.toISOString().split("T")[0];
 
-// רק ראשון-חמישי
+// בחירת תאריך
 dateInput.addEventListener("input", function() {
   let selected = new Date(this.value);
   let day = selected.getDay();
+
   if (day === 5 || day === 6) {
     alert("לא עובדים ביום זה");
     this.value = "";
+    timeSelect.innerHTML = "";
+    return;
   }
+
+  generateTimes(selected);
 });
 
-// שמירת תורים מקומית
+// שמירה
 function getAppointments() {
   return JSON.parse(localStorage.getItem("appointments") || "[]");
 }
@@ -94,7 +112,6 @@ function bookAppointment() {
 
   saveAppointment({ name, date, time });
 
-  // יצירת לינק ל-Google Calendar
   let start = new Date(date + "T" + time);
   let end = new Date(start.getTime() + 60*60*1000);
 
@@ -105,7 +122,7 @@ function bookAppointment() {
 
   window.open(url, '_blank');
 
-  document.getElementById("msg").innerText = "התור נשמר ונפתח ביומן גוגל!";
+  document.getElementById("msg").innerText = "התור נשמר!";
 }
 
 function formatGoogleDate(date) {
