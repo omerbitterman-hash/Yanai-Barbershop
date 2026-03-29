@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Yanai Barbershop</title>
+<style>
+body {font-family: Arial; background:#f5f5f5; text-align:center;}
+.container {background:white; padding:20px; border-radius:10px; max-width:400px; margin:auto; margin-top:50px;}
+button {padding:10px 20px; margin:5px; cursor:pointer;}
+input, select {padding:10px; margin:10px; width:80%;}
+</style>
+</head>
+<body>
+<div class="container">
+<h1>Yanai Barbershop</h1>
+<p>קביעת תור</p>
+
+<input type="text" id="name" placeholder="שם" />
+<br>
+
+<label>בחר תאריך:</label><br>
+<input type="date" id="date" />
+
+<br>
+<label>בחר שעה:</label><br>
+<select id="time"></select>
+
+<br>
+<button onclick="bookAppointment()">קבע תור</button>
+
+<p id="msg"></p>
+</div>
+
+<script>
+// שעות
+const timeSelect = document.getElementById("time");
+for (let i = 14; i <= 19; i++) {
+  let option = document.createElement("option");
+  option.value = i + ":00";
+  option.text = i + ":00";
+  timeSelect.appendChild(option);
+}
+
+// תאריכים
+const dateInput = document.getElementById("date");
+let today = new Date();
+let nextWeek = new Date();
+nextWeek.setDate(today.getDate() + 7);
+
+dateInput.min = today.toISOString().split("T")[0];
+dateInput.max = nextWeek.toISOString().split("T")[0];
+
+// רק ראשון-חמישי
+dateInput.addEventListener("input", function() {
+  let selected = new Date(this.value);
+  let day = selected.getDay();
+  if (day === 5 || day === 6) {
+    alert("לא עובדים ביום זה");
+    this.value = "";
+  }
+});
+
+// שמירת תורים מקומית
+function getAppointments() {
+  return JSON.parse(localStorage.getItem("appointments") || "[]");
+}
+
+function saveAppointment(app) {
+  let apps = getAppointments();
+  apps.push(app);
+  localStorage.setItem("appointments", JSON.stringify(apps));
+}
+
+function isTaken(date, time) {
+  let apps = getAppointments();
+  return apps.some(a => a.date === date && a.time === time);
+}
+
+function bookAppointment() {
+  let name = document.getElementById("name").value;
+  let date = document.getElementById("date").value;
+  let time = document.getElementById("time").value;
+
+  if (!name || !date || !time) {
+    document.getElementById("msg").innerText = "תמלא הכל";
+    return;
+  }
+
+  if (isTaken(date, time)) {
+    document.getElementById("msg").innerText = "השעה תפוסה";
+    return;
+  }
+
+  saveAppointment({ name, date, time });
+
+  // יצירת לינק ל-Google Calendar
+  let start = new Date(date + "T" + time);
+  let end = new Date(start.getTime() + 60*60*1000);
+
+  let startStr = formatGoogleDate(start);
+  let endStr = formatGoogleDate(end);
+
+  let url = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=תספורת+-+${name}&dates=${startStr}/${endStr}`;
+
+  window.open(url, '_blank');
+
+  document.getElementById("msg").innerText = "התור נשמר ונפתח ביומן גוגל!";
+}
+
+function formatGoogleDate(date) {
+  return date.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+}
+</script>
+</body>
+</html>
